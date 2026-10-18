@@ -1,0 +1,14 @@
+package org.universe.opensky.order.config;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@Configuration
+@FeignClient(value = "inventory", url = "${inventory.url}")
+public interface InventoryClient {
+    @RequestMapping(method = RequestMethod.GET, value = "/api/inventory")
+    boolean isInStock(@RequestParam String skucode, @RequestParam Integer quantity);
+}

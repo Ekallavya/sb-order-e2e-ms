@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: sb-order-e2e-ms

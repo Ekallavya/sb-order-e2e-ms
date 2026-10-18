@@ -1,0 +1,163 @@
+### product-gateway
+    # docker-compose.yml
+		#add loki service  config  ,docker to pull and run
+		
+			loki:
+			image: grafana/loki:main
+			command: ['-config.file=/etc/loki/local-config.yaml']
+			ports:
+			- '3100:3100'
+		#add prometheus service config ,docker to pull and run
+		
+			prometheus:
+			  image: prom/prometheus:v2.46.0
+			  command:
+				- --enable-feature=exemplar-storage
+				- --config.file=/etc/prometheus/prometheus.yml
+			  volumes:
+				- ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+			  ports:
+				- '9090:9090'
+		
+		
+		# add temp service config,docker to pull and run
+		
+			tempo:
+			  image: grafana/tempo:2.2.2
+			  command: ['-config.file=/etc/tempo.yaml']
+			  volumes:
+				- ./docker/tempo/tempo.yml:/etc/tempo.yaml:ro
+				- ./docker/tempo/tempo-data:/tmp/tempo
+			  ports:
+				- '3110:3100' # Tempo
+				- '9411:9411' # zipkin
+				
+		# add grafana service config ,docker to pull and run
+		
+			grafana:
+			  image: grafana/grafana:10.1.0
+			  volumes:
+				- ./docker/grafana:/etc/grafana/provisioning/datasources:ro
+			  environment:
+				- GF_AUTH_ANONYMOUS_ENABLED=true
+				- GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+				- GF_AUTH_DISABLE_LOGIN_FORM=true
+			  ports:
+				- '3000:3000'
+	#docker folder
+		# add prometheus.yml  file under docker folder
+		      product-gateway/docker/prometheus/prometheus.yml
+	# temp folder 
+	    # add tempo.yml file under docker folder
+		
+		   product-gateway/docker/tempo/temp.yml
+	# grafana folder 
+	    # add datasources.yml file under docker folder
+		   probability/docker/grafana/datasources.yml
+		
+		# add dashboard.json file 
+			probability/docker/grafana/dashboard.json
+		   
+		   
+	# start docker desktop and open powershell ,run docker compose
+	
+		go to project location and run
+		
+		-> docker compose -f docker-compose.yml up -d
+		
+	# open grafana dashboard
+	
+	   localhost:3000
+	
+
+### prdoduct-service
+   # add  to pom.xml
+	    <dependency>
+            <groupId>com.github.loki4j</groupId>
+            <artifactId>loki-logback-appender</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.zipkin.reporter2</groupId>
+			<artifactId>zipkin-reporter-brave</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+			<version>3.5.11</version>
+		</dependency>
+		
+	# add logback-spring.xml to resources
+	
+	# add the following to application.properties file
+	
+		management.endpoints.web.exposure.include=health, info, metrics, prometheus
+		management.metrics.distribution.percentiles-histogram.http.server.requests=true
+		management.observations.key-values.application=product-service
+		
+		management.tracing.sampling.probability=1.0	
+		
+	# add the following ObservationConfig class under src/main/java ../config package
+		@Configuration
+		public class ObservationConfig {
+		@Bean
+		ObservedAspect observedAspect(ObservationRegistry registry) {
+				return new ObservedAspect(registry);
+			}
+		}
+		
+
+
+Note : follow the same steps to  order-service , inventory-service,notification-service  as same as  product-service	
+
+
+	# for kafkal logs need to add the folloiwng code snippet to ObservationConfig class 
+	
+	private final ConcurrentKafkaListenerContainerFactory concurrentKafkaListenerContainerFactory;
+
+    @PostConstruct
+    public void setObservationForKafkaTemplate() {
+        concurrentKafkaListenerContainerFactory.getContainerProperties().setObservationEnabled(true);
+    }
+
+### grafana dashboard
+
+    # validate grafana running
+	
+		 open browser -> localhost:3000	
+		 
+		 -> click on left top right corner 3 lines
+		 -> click on Explore
+		 -> select Loki from drop down
+		 -> Label filters : select label -> application from drop down and select value for specified service from drop down (ex:order-service)
+		 -> click on RunQuery (to view logs)
+		 
+		# create custom dashboard
+		
+		  -> click on toggle menu (left top right corner 3 lines)
+		  -> click on Dashboards
+		  -> select Import from New drop down
+		  -> click on upload  dashboard json file and complete upload  from the following path
+		      browse to  product-gateway/docker/grafana/dashboard/dashboard.json
+		  -> select promotheus from drop down
+		  -> click on import
+		  -> view the dash board
+			   
+ 
+    
+ 
+   
+ 

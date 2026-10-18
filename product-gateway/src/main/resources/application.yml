@@ -1,0 +1,45 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /product-gateway
+spring:
+  application:
+    name: product-gateway-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8181/realms/Universal-User
+  cloud:
+    gateway:
+      routes:
+        - id: product-service
+          uri: http://localhost:8081/product-service
+          Predicates:
+            - Path=/api/product/**
+        - id: order-service
+          uri: http://localhost:8082/order-service
+          Predicates:
+            - Path=/api/order/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include=*:
+
+  springdoc :
+    swagger-ui:
+      path: /swagger-ui.html
+      enabled: true
+      urls[0]:
+        name: Product Service
+        url: /aggregate/product-service/v3/api-docs
+      urls[1]:
+        name: Order Service
+        url: /aggregate/order-service/v3/api-docs
+      urls[2]:
+        name: Inventory Service
+        url: /aggregate/inventory-service/v3/api-docs
+    api-docs:
+      enabled: true
